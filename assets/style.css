@@ -63,8 +63,8 @@
     margin-bottom: 20px;
 }
 
-/* 버튼 스타일 */
-.stButton>button {
+/* 버튼 스타일 (tertiary 제외) */
+.stButton>button:not([kind='tertiary']):not([data-testid='baseButton-tertiary']) {
     background-color: #ff0055;
     color: white;
     border: none;
@@ -74,11 +74,11 @@
     transition: all 0.3s ease;
 }
 
-.stButton>button:hover {
+.stButton>button:not([kind='tertiary']):not([data-testid='baseButton-tertiary']):hover {
     background-color: #ff00aa;
     color: white;
     box-shadow: 0 0 15px #ff00aa;
-    border-color: #ff00aa;
+    transform: scale(1.05);
 }
 
 /* 텍스트 입력창 스타일 */

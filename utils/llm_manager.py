@@ -1,10 +1,20 @@
 import json
 import requests
+import os
 from typing import List, Dict
 
-OLLAMA_URL = "http://localhost:11434/api/generate"
-# 기본 모델은 llama3로 설정 (설치된 모델명에 따라 변경 가능)
-OLLAMA_MODEL = "llama3"
+UPSTAGE_API_URL = "https://api.upstage.ai/v1/solar/chat/completions"
+# 권장 모델: solar-1-mini-chat
+UPSTAGE_MODEL = "solar-1-mini-chat"
+
+import streamlit as st
+
+def get_api_key() -> str:
+    # 1. Streamlit secrets 확인
+    if "UPSTAGE_API_KEY" in st.secrets:
+        return st.secrets["UPSTAGE_API_KEY"]
+    # 2. 환경변수 확인
+    return os.environ.get("UPSTAGE_API_KEY", "")
 
 def generate_system_prompt(char_data: dict, summary: str = "") -> str:
     """캐릭터 설정 데이터를 기반으로 시스템 프롬프트를 생성합니다."""
@@ -26,41 +36,75 @@ def generate_system_prompt(char_data: dict, summary: str = "") -> str:
         
     return prompt
 
-def call_ollama(prompt: str, system: str = "") -> str:
-    """Ollama API를 호출하여 텍스트를 생성합니다."""
+def call_upstage(messages: List[Dict[str, str]]) -> str:
+    """Upstage API를 호출하여 텍스트를 생성합니다."""
+    api_key = get_api_key()
+    if not api_key:
+        return "⚠️ Upstage API Key가 설정되지 않았습니다. 프로그램 실행 시 환경 변수에 UPSTAGE_API_KEY를 설정하거나 .env 파일을 만들어주세요."
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+    
     payload = {
-        "model": OLLAMA_MODEL,
-        "prompt": prompt,
-        "system": system,
+        "model": UPSTAGE_MODEL,
+        "messages": messages,
         "stream": False
     }
     
     try:
-        response = requests.post(OLLAMA_URL, json=payload, timeout=60)
+        response = requests.post(UPSTAGE_API_URL, headers=headers, json=payload, timeout=60)
+        
+        # API Key 오류 등 인증 실패 처리
+        if response.status_code == 401:
+            return "⚠️ Upstage API Key 인증에 실패했습니다. 올바른 키인지 확인해주세요."
+            
         response.raise_for_status()
         data = response.json()
-        return data.get("response", "")
+        
+        # Upstage/OpenAI 규격 응답 파싱
+        if "choices" in data and len(data["choices"]) > 0:
+            return data["choices"][0]["message"]["content"]
+        return "응답을 파싱할 수 없습니다."
+        
     except requests.exceptions.RequestException as e:
-        print(f"Ollama API Error: {e}")
-        return f"로컬 AI 서버(Ollama) 접속에 실패했습니다. Ollama가 실행 중인지 확인해주세요. (에러: {e})"
+        print(f"Upstage API Error: {e}")
+        return f"Upstage AI 서버 접속에 실패했습니다. 네트워크 상태를 확인해주세요. (에러: {e})"
 
 def summarize_conversation(history: List[Dict[str, str]]) -> str:
     """오래된 대화를 요약하여 장기 기억으로 압축합니다."""
     text_to_summarize = "\n".join([f"{msg['role']}: {msg['content']}" for msg in history])
     prompt = "다음 대화 내용을 한국어로 요약해줘. 중요한 사건, 사용자의 기분, 핵심 정보를 중심으로 3~5문장으로 요약해줘:\n\n" + text_to_summarize
     
-    return call_ollama(prompt=prompt, system="너는 대화 요약 전문가야.")
+    messages = [
+        {"role": "system", "content": "너는 대화 요약 전문가야."},
+        {"role": "user", "content": prompt}
+    ]
+    
+    return call_upstage(messages)
 
 def get_llm_response(user_input: str, char_data: dict, history: List[Dict[str, str]], summary: str) -> str:
-    """로컬 LLM을 호출하여 응답을 반환합니다."""
+    """Upstage LLM을 호출하여 응답을 반환합니다."""
     system_instruction = generate_system_prompt(char_data, summary)
     
-    # Ollama Generate API는 히스토리 배열 자체를 받지 않고 프롬프트 텍스트를 받습니다.
-    # 대화 맥락을 프롬프트에 포함하여 전달합니다.
-    context_prompt = ""
+    # Upstage API는 messages 배열을 받음
+    messages = [
+        {"role": "system", "content": system_instruction}
+    ]
+    
+    # 이전 히스토리 추가
     for msg in history:
-        context_prompt += f"{msg['role']}: {msg['content']}\n"
+        # role이 user 또는 assistant여야 함
+        messages.append({
+            "role": msg["role"],
+            "content": msg["content"]
+        })
+        
+    # 현재 사용자 입력 추가
+    messages.append({
+        "role": "user",
+        "content": user_input
+    })
     
-    context_prompt += f"user: {user_input}\nassistant: "
-    
-    return call_ollama(prompt=context_prompt, system=system_instruction)
+    return call_upstage(messages)
