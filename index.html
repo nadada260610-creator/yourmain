@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Avatar Garden</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden; /* 스크롤바 숨김 */
+            background-color: #000000;
+        }
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        .warning-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            font-family: sans-serif;
+            text-align: center;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    
+    <!-- ⚠️ 주의: 
+         아래 iframe의 src="주소" 부분을 반드시 Streamlit Cloud에서 발급받은 주소로 바꿔야 합니다! 
+         예시: src="https://my-avatar-garden.streamlit.app/?embed=true"
+    -->
+    <iframe src="https://streamlit.io/" id="app-frame" title="Avatar Garden" allow="camera; microphone"></iframe>
+
+    <div class="warning-overlay" id="warning">
+        <h2>⚠️ Vercel 껍데기(액자) 배포 성공! ⚠️</h2>
+        <p>이 화면이 보인다면 Vercel 배포 자체는 완벽하게 성공한 것입니다 (404 에러 해결).</p>
+        <p>하지만 현재 이 액자 안에는 '빈 화면'이 들어있습니다.</p>
+        <br>
+        <p><strong>[마지막 필수 단계]</strong></p>
+        <p>1. 반드시 Streamlit Cloud에 코드를 연동하여 <b>'진짜 파이썬 서버 주소'</b>를 발급받으세요.</p>
+        <p>2. 깃허브의 <b>index.html</b> 파일을 열어서, <code>&lt;iframe src="..."&gt;</code> 부분에 그 주소를 넣고 저장하세요.</p>
+        <p>3. 그러면 Vercel 주소로 접속했을 때 진짜 우리 앱이 뜨게 됩니다!</p>
+        <br>
+        <button onclick="document.getElementById('warning').style.display='none'" style="padding:10px 20px; font-size:16px; cursor:pointer;">안내창 닫기</button>
+    </div>
+
+</body>
+</html>
