@@ -1,0 +1,130 @@
+/* 감성적인 파스텔 톤 및 둥근 모서리 UI */
+
+/* 전체 배경 및 폰트 */
+.stApp {
+    background-color: #0d0d0d; /* 다크 테마 배경으로 변경 (네온을 위해) */
+    font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+    color: #f0f0f0;
+}
+
+/* 사이드바 스타일링 */
+[data-testid="stSidebar"] {
+    background-color: #1a1a1a; 
+    border-right: 1px solid #333;
+}
+
+/* 네온 텍스트 효과 (you're main) */
+.neon-text {
+    font-size: 4rem;
+    font-weight: 700;
+    color: #fff;
+    text-align: center;
+    text-transform: lowercase;
+    font-family: 'Courier New', Courier, monospace;
+    text-shadow:
+        0 0 5px #fff,
+        0 0 10px #fff,
+        0 0 20px #ff0055,
+        0 0 40px #ff0055,
+        0 0 80px #ff0055,
+        0 0 90px #ff0055,
+        0 0 100px #ff0055,
+        0 0 150px #ff0055;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    padding: 2rem;
+}
+
+.neon-text:hover {
+    text-shadow:
+        0 0 5px #fff,
+        0 0 10px #fff,
+        0 0 20px #ff00aa,
+        0 0 40px #ff00aa,
+        0 0 80px #ff00aa,
+        0 0 90px #ff00aa,
+        0 0 100px #ff00aa,
+        0 0 150px #ff00aa;
+    transform: scale(1.05);
+}
+
+.neon-small {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #fff;
+    text-transform: lowercase;
+    font-family: 'Courier New', Courier, monospace;
+    text-shadow:
+        0 0 2px #fff,
+        0 0 5px #fff,
+        0 0 10px #ff0055,
+        0 0 20px #ff0055,
+        0 0 30px #ff0055;
+    margin-bottom: 20px;
+}
+
+/* 버튼 스타일 */
+.stButton>button {
+    background-color: #ff0055;
+    color: white;
+    border: none;
+    border-radius: 20px;
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.stButton>button:hover {
+    background-color: #ff00aa;
+    color: white;
+    box-shadow: 0 0 15px #ff00aa;
+    border-color: #ff00aa;
+}
+
+/* 텍스트 입력창 스타일 */
+.stTextInput>div>div>input {
+    border-radius: 10px;
+    border: 1px solid #444;
+    padding: 0.5rem;
+    background-color: #222;
+    color: white;
+}
+
+.stTextArea>div>div>textarea {
+    border-radius: 10px;
+    border: 1px solid #444;
+    padding: 0.5rem;
+    background-color: #222;
+    color: white;
+}
+
+/* 채팅 말풍선 컨테이너 */
+[data-testid="chat-message"] {
+    background-color: transparent;
+    padding: 1rem;
+}
+
+[data-testid="chat-message-user"] {
+    background-color: #2a2a2a; 
+    border-radius: 15px 15px 0 15px;
+    margin-left: 20%;
+    margin-bottom: 1rem;
+    border: 1px solid #444;
+}
+
+[data-testid="chat-message-assistant"] {
+    background-color: #1f1f1f;
+    border-radius: 15px 15px 15px 0;
+    margin-right: 20%;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    border: 1px solid #333;
+}
+
+/* 사이드바 감추기 (랜딩페이지용) */
+.hide-sidebar [data-testid="stSidebar"] {
+    display: none;
+}
+.hide-sidebar [data-testid="collapsedControl"] {
+    display: none;
+}
