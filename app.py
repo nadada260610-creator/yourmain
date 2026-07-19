@@ -2,7 +2,7 @@ import streamlit as st
 import os
 import base64
 import uuid
-from utils.db_manager import get_characters, save_character, delete_character, get_conversation
+from utils.db_manager import get_characters, save_character, delete_character, get_conversation, get_stories, save_story, delete_story
 from utils.chat_engine import process_chat
 
 # Set page config
@@ -151,15 +151,41 @@ elif st.session_state.current_page == "main":
             margin-bottom: 15px;
             font-size: 1.5rem;
         }
+        
+        /* 사이드바 라디오 버튼(동그라미) 숨기고 메뉴처럼 스타일링 */
+        div[data-testid="stSidebar"] div[role="radiogroup"] label > div:first-child {
+            display: none !important;
+        }
+        div[data-testid="stSidebar"] div[role="radiogroup"] label {
+            padding: 8px 10px !important;
+            background-color: transparent !important;
+            border-radius: 8px !important;
+            cursor: pointer !important;
+            transition: all 0.2s;
+            margin-bottom: 5px !important;
+        }
+        div[data-testid="stSidebar"] div[role="radiogroup"] label:hover {
+            background-color: rgba(255, 255, 255, 0.05) !important;
+        }
+        div[data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) {
+            background-color: rgba(255, 0, 85, 0.15) !important;
+        }
+        div[data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) p {
+            font-weight: 800 !important;
+            color: #ff0055 !important;
+        }
         </style>
     """, unsafe_allow_html=True)
 
     # Small neon logo at top left
     st.markdown("<div class='your-main-text'>your main</div>", unsafe_allow_html=True)
     chars = get_characters()
-    char_options = {"new": "+ 새로운 페르소나 만들기"}
+    char_options = {
+        "new": "+ 나만의 캐릭터 만들기"
+    }
     for cid, cdata in chars.items():
         char_options[cid] = cdata["name"]
+    char_options["story"] = "+ 나만의 이야기 만들기"
 
     # Sidebar
     if st.sidebar.button("«", type="tertiary", help="첫 화면으로 돌아가기"):
@@ -179,12 +205,47 @@ elif st.session_state.current_page == "main":
     st.session_state.selected_char_id = selected_option
 
     # Delete button
-    if selected_option != "new":
+    if selected_option not in ["new", "story"]:
         st.sidebar.markdown("---")
         if st.sidebar.button("🗑️ 이 캐릭터 삭제하기", type="primary", use_container_width=True):
             delete_character(selected_option)
             st.session_state.selected_char_id = "new"
             st.rerun()
+
+    # 카카오톡 스타일 메시지 렌더링 함수
+    def render_kakaotalk_msg(role, content, char_name="", image_path=""):
+        content_html = content.replace('\n', '<br>')
+        if role == "user":
+            st.markdown(f"""
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 15px;">
+                <div style="background-color: rgba(255, 0, 0, 0.6); color: #ffffff; padding: 10px 15px; border-radius: 15px 0 15px 15px; max-width: 70%; word-break: break-word; font-size: 15px; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">
+                    {content_html}
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            # 아바타 이미지 처리
+            avatar_html = "👤"
+            if image_path:
+                abs_img_path = os.path.join(BASE_DIR, image_path)
+                if os.path.exists(abs_img_path):
+                    with open(abs_img_path, "rb") as img_file:
+                        encoded_string = base64.b64encode(img_file.read()).decode()
+                    avatar_html = f"<img src='data:image/png;base64,{encoded_string}' style='width: 100%; height: 100%; border-radius: 50%; object-fit: cover;'>"
+                    
+            st.markdown(f"""
+            <div style="display: flex; justify-content: flex-start; margin-bottom: 15px; align-items: flex-start;">
+                <div style="width: 40px; height: 40px; border-radius: 50%; background-color: #E2E2E2; margin-right: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; overflow: hidden;">
+                    {avatar_html}
+                </div>
+                <div style="display: flex; flex-direction: column;">
+                    <span style="font-size: 13px; color: #666; margin-bottom: 4px; margin-left: 2px;">{char_name}</span>
+                    <div style="background-color: #FFFFFF; color: #000; padding: 10px 15px; border-radius: 0 15px 15px 15px; max-width: 100%; word-break: break-word; border: 1px solid #E5E5E5; font-size: 15px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                        {content_html}
+                    </div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
 
     # Main Area
     if st.session_state.selected_char_id == "new":
@@ -268,48 +329,89 @@ elif st.session_state.current_page == "main":
                     st.rerun()
                 else:
                     st.error("이름과 프롬프트를 모두 입력해주세요.")
+    elif st.session_state.selected_char_id == "story":
+        st.markdown("<h3 class='neon-white-text'>나만의 이야기 만들기</h3>", unsafe_allow_html=True)
+        
+        stories = get_stories()
+        
+        if "active_story_id" not in st.session_state:
+            st.session_state.active_story_id = None
+            
+        if st.session_state.active_story_id is None:
+            st.write("▼ 플레이할 세계관을 선택하거나 새로 만드세요!")
+            
+            # 세계관 목록 표시
+            for sid, sdata in stories.items():
+                with st.container():
+                    st.markdown(f"#### 🌌 {sdata['title']}")
+                    st.write(sdata['description'])
+                    if st.button(f"[{sdata['title']}] 세계로 입장하기", key=f"enter_{sid}"):
+                        st.session_state.active_story_id = sid
+                        st.rerun()
+                    st.markdown("---")
+            
+            # 새로운 세계관 생성 폼
+            st.markdown("#### ✨ 내가 구축할 새로운 세계관 추가하기")
+            with st.form("new_story_form"):
+                new_s_title = st.text_input("세계관 제목", placeholder="예: 무림 고수들의 강호")
+                new_s_desc = st.text_area("세계관 및 당신의 역할 설명 (사용자용)", placeholder="예: 당신은 소림사의 풋내기 제자입니다. 어느 날 전설의 비급을 발견합니다.", height=100)
+                new_s_prompt = st.text_area("AI 시스템 프롬프트 (내레이터 지시사항)", placeholder="예: 당신은 무협 세계관의 내레이터입니다. 무공과 강호의 묘사를 실감나게 해주세요.", height=150)
+                
+                if st.form_submit_button("세계관 추가하기"):
+                    if new_s_title and new_s_desc and new_s_prompt:
+                        new_sid = f"story_custom_{uuid.uuid4().hex[:8]}"
+                        save_story(new_sid, {
+                            "title": new_s_title,
+                            "description": new_s_desc,
+                            "system_prompt": new_s_prompt
+                        })
+                        st.rerun()
+                    else:
+                        st.error("모든 칸을 채워주세요.")
+        else:
+            # 활성화된 스토리 채팅방
+            active_sid = st.session_state.active_story_id
+            story_data = stories[active_sid]
+            
+            col1, col2 = st.columns([4, 1])
+            with col1:
+                st.subheader(f"🌌 {story_data['title']}")
+            with col2:
+                if st.button("🚪 나가기", use_container_width=True):
+                    st.session_state.active_story_id = None
+                    st.rerun()
+                    
+            st.info(story_data['description'])
+            
+            # Load story history
+            story_chat_id = f"story_{active_sid}"
+            conv_data = get_conversation(story_chat_id)
+            history = conv_data.get("history", [])
+            
+            # Display history
+            for msg in history:
+                name = "나" if msg["role"] == "user" else "내레이터(마스터)"
+                render_kakaotalk_msg(msg["role"], msg["content"], name)
+                
+            if prompt := st.chat_input("행동이나 대사를 입력하세요..."):
+                # 유저 메시지 표시
+                render_kakaotalk_msg("user", prompt, "나")
+                
+                with st.spinner("이야기가 진행 중입니다..."):
+                    # process_chat 함수 재사용
+                    response = process_chat(prompt, story_chat_id, story_data)
+                
+                if response:
+                    render_kakaotalk_msg("assistant", response, "내레이터(마스터)")
+                else:
+                    st.error("앗, 진행에 문제가 생겼습니다. API 키나 네트워크를 확인해주세요!")
+
     else:
         # Chat Room
         char_id = st.session_state.selected_char_id
         char_data = chars[char_id]
         
         st.subheader(f"💬 {char_data['name']} 님과의 대화")
-        
-        # 카카오톡 스타일 메시지 렌더링 함수
-        def render_kakaotalk_msg(role, content, char_name="", image_path=""):
-            # HTML 특수문자 처리가 필요할 수 있으나 기본적으로 content 내 태그 허용
-            content_html = content.replace('\\n', '<br>')
-            if role == "user":
-                st.markdown(f"""
-                <div style="display: flex; justify-content: flex-end; margin-bottom: 15px;">
-                    <div style="background-color: rgba(255, 0, 0, 0.6); color: #ffffff; padding: 10px 15px; border-radius: 15px 0 15px 15px; max-width: 70%; word-break: break-word; font-size: 15px; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">
-                        {content_html}
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-            else:
-                # 아바타 이미지 처리
-                avatar_html = "👤"
-                if image_path:
-                    abs_img_path = os.path.join(BASE_DIR, image_path)
-                    if os.path.exists(abs_img_path):
-                        with open(abs_img_path, "rb") as img_file:
-                            encoded_string = base64.b64encode(img_file.read()).decode()
-                        avatar_html = f"<img src='data:image/png;base64,{encoded_string}' style='width: 100%; height: 100%; border-radius: 50%; object-fit: cover;'>"
-                        
-                st.markdown(f"""
-                <div style="display: flex; justify-content: flex-start; margin-bottom: 15px; align-items: flex-start;">
-                    <div style="width: 40px; height: 40px; border-radius: 50%; background-color: #E2E2E2; margin-right: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; overflow: hidden;">
-                        {avatar_html}
-                    </div>
-                    <div style="display: flex; flex-direction: column;">
-                        <span style="font-size: 13px; color: #666; margin-bottom: 4px; margin-left: 2px;">{char_name}</span>
-                        <div style="background-color: #FFFFFF; color: #000; padding: 10px 15px; border-radius: 0 15px 15px 15px; max-width: 100%; word-break: break-word; border: 1px solid #E5E5E5; font-size: 15px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-                            {content_html}
-                        </div>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
 
         # Load history
         conv_data = get_conversation(char_id)

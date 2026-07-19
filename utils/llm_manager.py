@@ -17,7 +17,15 @@ def get_api_key() -> str:
     return os.environ.get("UPSTAGE_API_KEY", "")
 
 def generate_system_prompt(char_data: dict, summary: str = "") -> str:
-    """캐릭터 설정 데이터를 기반으로 시스템 프롬프트를 생성합니다."""
+    """캐릭터 설정 또는 세계관 데이터를 기반으로 시스템 프롬프트를 생성합니다."""
+    # 스토리(세계관) 모드인 경우
+    if "system_prompt" in char_data:
+        prompt = char_data["system_prompt"]
+        if summary:
+            prompt += f"\n\n[과거 진행 요약]\n이전까지의 이야기 진행 요약입니다. 이를 기억하고 자연스럽게 이야기에 반영하세요:\n{summary}\n"
+        return prompt
+
+    # 일반 캐릭터 모드인 경우
     prompt = f"""당신은 AI 어시스턴트가 아니라, 사용자만의 특별한 페르소나입니다. 
 아래 설정된 페르소나에 완벽하게 빙의하여 사용자와 한국어로 대화하세요. 절대 자신이 AI라는 것을 밝히지 마세요.
 
